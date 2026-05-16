@@ -7,15 +7,25 @@ import mongoose from "mongoose";
 const notesSchema = new mongoose.Schema(
     {
     // what every single note will have
+    userId: {              // ADD THIS FIELD
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    
     title:{
         type:String,
         required:true
     },
 
+    tags: { type: [String], default: [] },  
+    isPinned: { type: Boolean, default: false },
     content: {
         type:String,
         required:true
-    }
+    },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
     }, 
     {timestamps:true} // mongodb by default will give you createAt, updatedAt
 )

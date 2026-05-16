@@ -1,27 +1,134 @@
-import { ArrowLeftIcon } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeftIcon, WifiOffIcon } from "lucide-react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Link, useNavigate } from "react-router"; 
+import { Link, useNavigate } from "react-router";
+import Confetti from "react-confetti";
 import api from "../lib/axios";
+import TagInput from "../components/TagInput";
+import { queueAction, getCachedNotes, cacheNotes } from "../lib/offlineStorage";
+import { onOnline, onOffline, isOnline } from "../lib/syncService";
 
 const CreatePage = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   const navigate = useNavigate();
+
+  // Update counts
+  useEffect(() => {
+    const words = content.trim().split(/\s+/).filter(Boolean).length;
+    setWordCount(words);
+    setCharCount(content.length);
+  }, [content]);
+
+  // Use centralized event system instead of direct listeners
+  useEffect(() => {
+    const unsubscribeOnline = onOnline(() => {
+      setIsOffline(false);
+    });
+    
+    const unsubscribeOffline = onOffline(() => {
+      setIsOffline(true);
+    });
+    
+    return () => {
+      unsubscribeOnline();
+      unsubscribeOffline();
+    };
+  }, []);
+
+  // Auto-save draft
+  useEffect(() => {
+    const draft = localStorage.getItem("note_draft");
+    if (draft && !title && !content && !tags.length) {
+      const shouldLoad = window.confirm("You have a saved draft. Load it?");
+      if (shouldLoad) {
+        const { title: savedTitle, content: savedContent, tags: savedTags } = JSON.parse(draft);
+        setTitle(savedTitle || "");
+        setContent(savedContent || "");
+        setTags(savedTags || []);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (title || content || tags.length) {
+      const timer = setTimeout(() => {
+        localStorage.setItem("note_draft", JSON.stringify({ title, content, tags }));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [title, content, tags]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!title.trim() || !content.trim()) {
-      toast.error("All fields are required");
+      toast.error("Title and content are required");
       return;
     }
 
     setLoading(true);
+    
+    // OFFLINE MODE: Save locally and queue for later sync
+   // In CreatePage.jsx - Update the offline note creation
+
+  if (isOffline) {
+    // Generate a unique temporary ID
+    const tempId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create temporary note with local ID
+    const tempNote = {
+      _id: tempId,
+      title,
+      content,
+      tags,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isPinned: false,
+      isOffline: true // Mark as offline note
+    };
+  
+    // Queue for sync when online
+    await queueAction({
+      type: 'CREATE_NOTE',
+      tempId: tempId,
+      data: { title, content, tags }
+    });
+  
+    // Get existing cached notes
+    const cachedNotes = await getCachedNotes();
+    
+    // Add new note to the beginning (most recent first)
+    const updatedCache = [tempNote, ...cachedNotes];
+    
+    // Save to cache
+    await cacheNotes(updatedCache);
+    
+    // Clear draft
+    localStorage.removeItem("note_draft");
+  
+    toast.success("Note saved offline! Will sync when online.", {
+      icon: '📱',
+      duration: 4000
+    });
+    
+    navigate("/");
+    return;
+  } 
+    
+    // ONLINE MODE: Normal flow
     try {
-      await api.post("/notes", { title, content });
+      const response = await api.post("/notes", { title, content, tags });
+      localStorage.removeItem("note_draft");
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
       toast.success("Note created successfully!");
       navigate("/");
     } catch (error) {
@@ -31,62 +138,120 @@ const CreatePage = () => {
           duration: 4000,
           icon: "💀",
         });
+      } else if (error.isOffline || error.code === 'ERR_NETWORK') {
+        // Fallback to offline mode if request fails due to network
+        setIsOffline(true);
+        // Retry with offline logic after a short delay
+        setTimeout(() => {
+          handleSubmit(e);
+        }, 100);
       } else {
-        toast.error("Failed to create note");
+        toast.error("Failed to create note: " + (error.response?.data?.message || error.message));
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [title, content, tags, isOffline]);
+
   return (
-    <div className="min-h-screen bg-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-stone-100 dark:from-stone-900 dark:via-stone-800 dark:to-stone-900 transition-colors duration-300">
+      {showConfetti && <Confetti />}
+      
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <Link to={"/"} className="btn btn-ghost text-amber-700 mb-6">
-            <ArrowLeftIcon className="size-5" />
+          <Link to={"/"} className="inline-flex items-center gap-2 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 mb-6 transition-colors group">
+            <ArrowLeftIcon className="size-5 group-hover:-translate-x-1 transition-transform" />
             Back to Notes
           </Link>
 
-          <div className="card bg-white border border-amber-200 shadow-sm">
-            <div className="card-body">
-              <h2 className="card-title text-2xl text-amber-800 mb-4">
+          <div className="bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-amber-200/50 dark:border-stone-700/50 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 px-6 py-4">
+              <h2 className="text-2xl font-bold text-white">
                 Create New Note
               </h2>
+              <p className="text-amber-100 text-sm mt-1">
+                {isOffline ? "Offline Mode - Will sync when online" : "Capture your thoughts"}
+              </p>
+            </div>
+            
+            <div className="p-6">
+              {/* Offline Warning */}
+              {isOffline && (
+                <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                  <WifiOffIcon className="size-4" />
+                  <span className="text-sm">Offline mode - Note will be saved locally and sync when online</span>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit}>
-                <div className="form-control mb-4">
-                  <label className="label">
-                    <span className="label-text text-stone-700">Title</span>
+                <div className="mb-5">
+                  <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+                    Title
                   </label>
                   <input
                     type="text"
-                    placeholder="Note Title"
-                    className="input input-bordered border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                    placeholder="Give your note a catchy title..."
+                    className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-stone-600 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 outline-none transition-all bg-amber-50/30 dark:bg-stone-700/30 dark:text-white"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
 
-                <div className="form-control mb-4">
-                  <label className="label">
-                    <span className="label-text text-stone-700">Content</span>
+                <div className="mb-5">
+                  <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+                    Tags
+                  </label>
+                  <TagInput tags={tags} onTagsChange={setTags} />
+                </div>
+
+                <div className="mb-5">
+                  <label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-2">
+                    Content
                   </label>
                   <textarea
-                    placeholder="Write your note here..."
-                    className="textarea textarea-bordered h-32 border-amber-300 focus:border-amber-500 focus:ring-amber-500"
+                    placeholder="Write your thoughts here..."
+                    rows="8"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-amber-200 dark:border-stone-600 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 outline-none transition-all bg-amber-50/30 dark:bg-stone-700/30 dark:text-white resize-none"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
                   />
+                  <div className="flex justify-between text-xs text-stone-400 dark:text-stone-500 mt-2">
+                    <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>
+                    <span>{charCount} characters</span>
+                  </div>
                 </div>
 
-                <div className="card-actions justify-end">
+                <div className="flex justify-end gap-3">
+                  <Link
+                    to="/"
+                    className="px-6 py-2.5 rounded-xl border-2 border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-all font-medium"
+                  >
+                    Cancel
+                  </Link>
                   <button
                     type="submit"
-                    className="btn bg-amber-600 hover:bg-amber-700 text-white"
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
                     disabled={loading}
                   >
-                    {loading ? "Creating..." : "Create Note"}
+                    {loading ? "Creating..." : (isOffline ? "📱 Save Offline" : "✨ Create Note")}
                   </button>
+                </div>
+                
+                <div className="mt-4 text-xs text-center text-stone-400 dark:text-stone-500">
+                  💡 Tip: Press Ctrl+S (or Cmd+S) to save
                 </div>
               </form>
             </div>

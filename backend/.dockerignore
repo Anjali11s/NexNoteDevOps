@@ -1,0 +1,12 @@
+# .dockerignore ->Tells Docker which files to NOT copy into image
+# Makes build faster, image smaller
+
+node_modules/
+.env
+.git
+.gitignore
+README.md
+logs/
+*.log
+npm-debug.log*
+.DS_Store

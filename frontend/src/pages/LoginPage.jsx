@@ -33,7 +33,7 @@ const LoginPage = () => {
             <SparklesIcon className="size-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-700 to-orange-600 bg-clip-text text-transparent">
-            Welcome Back
+            Welcome back
           </h1>
           <p className="text-stone-600 mt-2">Sign in to continue to NexNote</p>
         </div>

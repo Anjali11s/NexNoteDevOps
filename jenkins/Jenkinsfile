@@ -6,41 +6,59 @@ pipeline {
     }
     
     stages {
-        stage('Deployment Info') {
+        stage('Deploy Backend') {
             steps {
-                echo "========================================="
-                echo "🚀 NEXNOTE DEPLOYMENT TRIGGERED"
-                echo "========================================="
-                echo "Build Number: ${env.BUILD_NUMBER}"
-                echo "Image Tag: ${params.IMAGE_TAG}"
-                echo "Backend Image: singhanjali1/nexnote-backend:${params.IMAGE_TAG}"
-                echo "Frontend Image: singhanjali1/nexnote-frontend:${params.IMAGE_TAG}"
-                echo "Triggered by: GitHub Actions"
-                echo "========================================="
-                echo "✅ DEPLOYMENT INFORMATION LOGGED"
-                echo "========================================="
+                script {
+                    sh """
+                        kubectl set image deployment/backend \
+                            backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} \
+                            -n nexnote
+                    """
+                }
             }
         }
         
-        stage('Actual Deployment (K8s)') {
+        stage('Deploy Frontend') {
             steps {
-                echo "Note: kubectl commands will run on EC2 production"
-                echo "For local demo, deployment info is sufficient"
-                echo ""
-                echo "To deploy on production EC2, run:"
-                echo "kubectl set image deployment/backend backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} -n nexnote"
-                echo "kubectl set image deployment/frontend frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} -n nexnote"
+                script {
+                    sh """
+                        kubectl set image deployment/frontend \
+                            frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} \
+                            -n nexnote
+                    """
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh """
+                        kubectl rollout status deployment/backend -n nexnote --timeout=3m
+                        kubectl rollout status deployment/frontend -n nexnote --timeout=3m
+                    """
+                }
+            }
+        }
+        
+        stage('Show Status') {
+            steps {
+                script {
+                    sh """
+                        kubectl get pods -n nexnote
+                        kubectl get svc -n nexnote
+                    """
+                }
             }
         }
     }
     
     post {
         success {
-            echo '✅ Jenkins pipeline successful!'
-            echo "🎉 Deployment triggered for tag: ${params.IMAGE_TAG}"
+            echo '✅ Deployment successful!'
         }
         failure {
-            echo '❌ Jenkins pipeline failed!'
+            echo '❌ Deployment failed!'
         }
     }
 }

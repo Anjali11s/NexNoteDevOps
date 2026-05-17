@@ -40,17 +40,6 @@ pipeline {
                 }
             }
         }
-        
-        stage('Show Status') {
-            steps {
-                script {
-                    sh """
-                        kubectl get pods -n nexnote
-                        kubectl get svc -n nexnote
-                    """
-                }
-            }
-        }
     }
     
     post {

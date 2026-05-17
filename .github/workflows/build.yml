@@ -58,5 +58,14 @@ jobs:
       
       - name: Trigger Jenkins job
         run: |
-          curl -X POST "http://16.16.159.157:8080/job/NexNote-Deploy/build?token=nexnote-token-123" \
+          # Install jq for JSON parsing
+          sudo apt-get install -y jq
+          
+          # Get crumb
+          CRUMB=$(curl -s 'http://anjali:${{ secrets.JENKINS_TOKEN }}@16.16.159.157:8080/crumbIssuer/api/json' | jq -r '.crumb')
+          
+          # Trigger with crumb
+          curl -X POST "http://16.16.159.157:8080/job/NexNote-Deploy/buildWithParameters" \
+            -H "Jenkins-Crumb: $CRUMB" \
+            --user "admin:${{ secrets.JENKINS_TOKEN }}" \
             --data-urlencode "IMAGE_TAG=${{ steps.vars.outputs.sha_short }}"

@@ -58,9 +58,28 @@ jobs:
       
       - name: Trigger Jenkins job
         run: |
-          sudo apt-get install -y jq
-          CRUMB=$(curl -s 'http://anjali:${{ secrets.JENKINS_TOKEN }}@16.16.159.157:8080/crumbIssuer/api/json' | jq -r '.crumb')
-          curl -X POST "http://16.16.159.157:8080/job/NexNote-Deploy/buildWithParameters" \
-            -H "Jenkins-Crumb: $CRUMB" \
-            --user "anjali:${{ secrets.JENKINS_TOKEN }}" \
-            --data-urlencode "IMAGE_TAG=${{ steps.vars.outputs.sha_short }}"
+          python3 << EOF
+          import requests
+          from requests.auth import HTTPBasicAuth
+          
+          JENKINS_URL = "http://16.16.159.157:8080"
+          AUTH = HTTPBasicAuth("anjali", "${{ secrets.JENKINS_TOKEN }}")
+          
+          # Get crumb
+          resp = requests.get(f"{JENKINS_URL}/crumbIssuer/api/json", auth=AUTH)
+          crumb = resp.json()["crumb"]
+          
+          # Trigger build with parameters
+          params = {"IMAGE_TAG": "${{ steps.vars.outputs.sha_short }}"}
+          resp = requests.post(
+              f"{JENKINS_URL}/job/NexNote-Deploy/buildWithParameters",
+              auth=AUTH,
+              headers={"Jenkins-Crumb": crumb},
+              data=params
+          )
+          print(f"Status: {resp.status_code}")
+          if resp.status_code in [200, 201, 302]:
+              print("✅ Jenkins build triggered successfully!")
+          else:
+              print(f"❌ Failed: {resp.text}")
+          EOF

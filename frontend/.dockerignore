@@ -1,7 +1,9 @@
-# frontend/.dockerignore
 node_modules/
 .git
 .env
 dist/
 .DS_Store
 *.log
+coverage/
+.vscode/
+.idea/

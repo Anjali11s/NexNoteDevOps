@@ -1,0 +1,63 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Get commit SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/nexnote-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/nexnote-backend:${{ steps.vars.outputs.sha_short }}
+      
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/nexnote-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/nexnote-frontend:${{ steps.vars.outputs.sha_short }}
+      
+      - name: Update image tags in k8s manifests
+        run: |
+          sed -i "s|nexnote-backend:.*|nexnote-backend:${{ steps.vars.outputs.sha_short }}|g" k8s/backend.yaml
+          sed -i "s|nexnote-frontend:.*|nexnote-frontend:${{ steps.vars.outputs.sha_short }}|g" k8s/frontend.yaml
+      
+      - name: Commit updated manifests
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add k8s/*.yaml
+          git commit -m "Update image tags to ${{ steps.vars.outputs.sha_short }}" || echo "No changes"
+          git push
+      
+      - name: Trigger Jenkins job
+        run: |
+          curl -X POST "${{ secrets.JENKINS_URL }}/job/NexNote-Deploy/buildWithParameters" \
+            --user ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }} \
+            --data-urlencode "IMAGE_TAG=${{ steps.vars.outputs.sha_short }}" || echo "Jenkins trigger skipped"

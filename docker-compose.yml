@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: nexnote-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret123
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    container_name: nexnote-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: development
+      MONGO_URI: mongodb://admin:secret123@mongodb:27017/nexnote?authSource=admin
+      JWT_SECRET: mysecretkey12345
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: ./frontend
+    container_name: nexnote-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

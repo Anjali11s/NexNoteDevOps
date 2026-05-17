@@ -28,7 +28,7 @@ EXPOSE 5001
 # HEALTHCHECK? -> Docker will check if your app is alive every 30s
 # curl -f = fail if HTTP error
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5001/api/health || exit 1
+  CMD node -e "require('http').get('http://localhost:5001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Command to run when container starts
 CMD ["node", "server.js"]

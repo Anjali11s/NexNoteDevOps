@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: nexnote-frontend:latest
+        image: nexnote-frontend:f458356
         ports:
         - containerPort: 80
         resources:

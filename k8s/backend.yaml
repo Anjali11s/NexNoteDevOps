@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: nexnote-backend:latest
+        image: nexnote-backend:f458356
         ports:
         - containerPort: 5001
         env:

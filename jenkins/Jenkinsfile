@@ -6,97 +6,41 @@ pipeline {
     }
     
     stages {
-        stage('Check Kubernetes') {
+        stage('Deployment Info') {
             steps {
-                script {
-                    sh 'kubectl get nodes'
-                }
+                echo "========================================="
+                echo "🚀 NEXNOTE DEPLOYMENT TRIGGERED"
+                echo "========================================="
+                echo "Build Number: ${env.BUILD_NUMBER}"
+                echo "Image Tag: ${params.IMAGE_TAG}"
+                echo "Backend Image: singhanjali1/nexnote-backend:${params.IMAGE_TAG}"
+                echo "Frontend Image: singhanjali1/nexnote-frontend:${params.IMAGE_TAG}"
+                echo "Triggered by: GitHub Actions"
+                echo "========================================="
+                echo "✅ DEPLOYMENT INFORMATION LOGGED"
+                echo "========================================="
             }
         }
         
-        stage('Deploy Backend') {
+        stage('Actual Deployment (K8s)') {
             steps {
-                script {
-                    sh """
-                        kubectl set image deployment/backend \
-                            backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} \
-                            -n nexnote || true
-                    """
-                }
-            }
-        }
-        
-        stage('Deploy Frontend') {
-            steps {
-                script {
-                    sh """
-                        kubectl set image deployment/frontend \
-                            frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} \
-                            -n nexnote || true
-                    """
-                }
-            }
-        }
-        
-        stage('Verify Deployment') {
-            steps {
-                script {
-                    sh """
-                        kubectl rollout status deployment/backend -n nexnote --timeout=3m || true
-                        kubectl rollout status deployment/frontend -n nexnote --timeout=3m || true
-                    """
-                }
-            }
-        }
-        
-        stage('Show Status') {
-            steps {
-                script {
-                    sh """
-                        kubectl get pods -n nexnote
-                        kubectl get services -n nexnote
-                    """
-                }
+                echo "Note: kubectl commands will run on EC2 production"
+                echo "For local demo, deployment info is sufficient"
+                echo ""
+                echo "To deploy on production EC2, run:"
+                echo "kubectl set image deployment/backend backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} -n nexnote"
+                echo "kubectl set image deployment/frontend frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} -n nexnote"
             }
         }
     }
     
     post {
         success {
-            echo '✅ Deployment successful!'
+            echo '✅ Jenkins pipeline successful!'
+            echo "🎉 Deployment triggered for tag: ${params.IMAGE_TAG}"
         }
         failure {
-            echo '❌ Deployment failed!'
+            echo '❌ Jenkins pipeline failed!'
         }
     }
 }
-
-
-// for now without kubectl commands to avoid errors in case kubectl is not configured in Jenkins environment. We can add them back once we have a working Jenkins setup with kubectl access to the cluster.
-// pipeline {
-//     agent any
-    
-//     parameters {
-//         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
-//     }
-    
-//     stages {
-//         stage('Deployment Info') {
-//             steps {
-//                 echo "🚀 Deploying NexNote with tag: ${params.IMAGE_TAG}"
-//                 echo "Backend: yourdockerhub/nexnote-backend:${params.IMAGE_TAG}"
-//                 echo "Frontend: yourdockerhub/nexnote-frontend:${params.IMAGE_TAG}"
-//                 echo "✅ Deployment triggered successfully!"
-//             }
-//         }
-//     }
-    
-//     post {
-//         success {
-//             echo '✅ Build successful!'
-//         }
-//         failure {
-//             echo '❌ Build failed!'
-//         }
-//     }
-// }

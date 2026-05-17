@@ -1,78 +1,3 @@
-// pipeline {
-//     agent any
-    
-//     parameters {
-//         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
-//     }
-    
-//     stages {
-//         stage('Check Kubernetes') {
-//             steps {
-//                 script {
-//                     sh 'kubectl get nodes'
-//                 }
-//             }
-//         }
-        
-//         stage('Deploy Backend') {
-//             steps {
-//                 script {
-//                     sh """
-//                         kubectl set image deployment/backend \
-//                             backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} \
-//                             -n nexnote || true
-//                     """
-//                 }
-//             }
-//         }
-        
-//         stage('Deploy Frontend') {
-//             steps {
-//                 script {
-//                     sh """
-//                         kubectl set image deployment/frontend \
-//                             frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} \
-//                             -n nexnote || true
-//                     """
-//                 }
-//             }
-//         }
-        
-//         stage('Verify Deployment') {
-//             steps {
-//                 script {
-//                     sh """
-//                         kubectl rollout status deployment/backend -n nexnote --timeout=3m || true
-//                         kubectl rollout status deployment/frontend -n nexnote --timeout=3m || true
-//                     """
-//                 }
-//             }
-//         }
-        
-//         stage('Show Status') {
-//             steps {
-//                 script {
-//                     sh """
-//                         kubectl get pods -n nexnote
-//                         kubectl get services -n nexnote
-//                     """
-//                 }
-//             }
-//         }
-//     }
-    
-//     post {
-//         success {
-//             echo '✅ Deployment successful!'
-//         }
-//         failure {
-//             echo '❌ Deployment failed!'
-//         }
-//     }
-// }
-
-
-// for now without kubectl commands to avoid errors in case kubectl is not configured in Jenkins environment. We can add them back once we have a working Jenkins setup with kubectl access to the cluster.
 pipeline {
     agent any
     
@@ -81,22 +6,97 @@ pipeline {
     }
     
     stages {
-        stage('Deployment Info') {
+        stage('Check Kubernetes') {
             steps {
-                echo "🚀 Deploying NexNote with tag: ${params.IMAGE_TAG}"
-                echo "Backend: yourdockerhub/nexnote-backend:${params.IMAGE_TAG}"
-                echo "Frontend: yourdockerhub/nexnote-frontend:${params.IMAGE_TAG}"
-                echo "✅ Deployment triggered successfully!"
+                script {
+                    sh 'kubectl get nodes'
+                }
+            }
+        }
+        
+        stage('Deploy Backend') {
+            steps {
+                script {
+                    sh """
+                        kubectl set image deployment/backend \
+                            backend=singhanjali1/nexnote-backend:${params.IMAGE_TAG} \
+                            -n nexnote || true
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy Frontend') {
+            steps {
+                script {
+                    sh """
+                        kubectl set image deployment/frontend \
+                            frontend=singhanjali1/nexnote-frontend:${params.IMAGE_TAG} \
+                            -n nexnote || true
+                    """
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh """
+                        kubectl rollout status deployment/backend -n nexnote --timeout=3m || true
+                        kubectl rollout status deployment/frontend -n nexnote --timeout=3m || true
+                    """
+                }
+            }
+        }
+        
+        stage('Show Status') {
+            steps {
+                script {
+                    sh """
+                        kubectl get pods -n nexnote
+                        kubectl get services -n nexnote
+                    """
+                }
             }
         }
     }
     
     post {
         success {
-            echo '✅ Build successful!'
+            echo '✅ Deployment successful!'
         }
         failure {
-            echo '❌ Build failed!'
+            echo '❌ Deployment failed!'
         }
     }
 }
+
+
+// for now without kubectl commands to avoid errors in case kubectl is not configured in Jenkins environment. We can add them back once we have a working Jenkins setup with kubectl access to the cluster.
+// pipeline {
+//     agent any
+    
+//     parameters {
+//         string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
+//     }
+    
+//     stages {
+//         stage('Deployment Info') {
+//             steps {
+//                 echo "🚀 Deploying NexNote with tag: ${params.IMAGE_TAG}"
+//                 echo "Backend: yourdockerhub/nexnote-backend:${params.IMAGE_TAG}"
+//                 echo "Frontend: yourdockerhub/nexnote-frontend:${params.IMAGE_TAG}"
+//                 echo "✅ Deployment triggered successfully!"
+//             }
+//         }
+//     }
+    
+//     post {
+//         success {
+//             echo '✅ Build successful!'
+//         }
+//         failure {
+//             echo '❌ Build failed!'
+//         }
+//     }
+// }

@@ -13,9 +13,11 @@ spec:
       labels:
         app: frontend
     spec:
+      imagePullSecrets:          
+      - name: dockerhub-secret
       containers:
       - name: frontend
-        image: nexnote-frontend:f458356
+        image: singhanjali1/nexnote-frontend:latest
         ports:
         - containerPort: 80
         resources:

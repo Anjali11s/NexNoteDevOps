@@ -13,9 +13,11 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:          
+      - name: dockerhub-secret
       containers:
       - name: backend
-        image: nexnote-backend:f458356
+        image: singhanjali1/nexnote-backend:latest
         ports:
         - containerPort: 5001
         env:

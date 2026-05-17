@@ -17,7 +17,7 @@ spec:
       - name: dockerhub-secret
       containers:
       - name: backend
-        image: singhanjali1/nexnote-backend:edcea72
+        image: singhanjali1/nexnote-backend:2d395fb
         ports:
         - containerPort: 5001
         env:

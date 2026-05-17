@@ -61,20 +61,25 @@ jobs:
           python3 << EOF
           import requests
           from requests.auth import HTTPBasicAuth
-          
+
           JENKINS_URL = "http://16.16.159.157:8080"
           AUTH = HTTPBasicAuth("anjali", "${{ secrets.JENKINS_TOKEN }}")
-          
+
           # Get crumb
           resp = requests.get(f"{JENKINS_URL}/crumbIssuer/api/json", auth=AUTH)
-          crumb = resp.json()["crumb"]
-          
+          if resp.status_code == 200 and resp.text.strip():
+              crumb_data = resp.json()
+              crumb = crumb_data["crumb"]
+              headers = {crumb_data["crumbRequestField"]: crumb}
+          else:
+              headers = {}
+
           # Trigger build with parameters
           params = {"IMAGE_TAG": "${{ steps.vars.outputs.sha_short }}"}
           resp = requests.post(
               f"{JENKINS_URL}/job/NexNote-Deploy/buildWithParameters",
               auth=AUTH,
-              headers={"Jenkins-Crumb": crumb},
+              headers=headers,
               data=params
           )
           print(f"Status: {resp.status_code}")

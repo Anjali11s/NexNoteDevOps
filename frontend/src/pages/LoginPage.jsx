@@ -35,7 +35,7 @@ const LoginPage = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-700 to-orange-600 bg-clip-text text-transparent">
             Welcome Back!
           </h1>
-          <p className="text-stone-600 mt-2">Sign in to continue to NexNote</p>
+          <p className="text-stone-600 mt-2">Sign in please to continue to NexNote</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8">

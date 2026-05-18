@@ -62,7 +62,7 @@ jobs:
           import requests
           from requests.auth import HTTPBasicAuth
 
-          JENKINS_URL = "http://16.16.159.157:8080"
+          JENKINS_URL = "${{ secrets.JENKINS_URL }}"
           AUTH = HTTPBasicAuth("anjali", "${{ secrets.JENKINS_TOKEN }}")
 
           # Get crumb

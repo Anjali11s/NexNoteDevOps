@@ -2,22 +2,16 @@ import axios from "axios";
 
 // Get the correct API URL based on environment
 const getBaseUrl = () => {
-  // In development (npm run dev)
+  // In development
   if (import.meta.env.DEV && import.meta.env.MODE === 'development') {
     return 'http://localhost:5001/api';
   }
   
-  // In preview (npm run preview)
-  if (import.meta.env.MODE === 'preview') {
-    return 'http://localhost:5001/api';
-  }
-  
-  // // In production
-  // return '/api';
-  // In production (Vercel)
-  // return 'https://notesmobilebackend.onrender.com/api';
-  return 'http://16.16.169.56:31448/api';
+  // In production - use relative URL (nginx will proxy)
+  return '/api';
 };
+
+const BASE_URL = getBaseUrl();
 
 const BASE_URL = getBaseUrl();
 

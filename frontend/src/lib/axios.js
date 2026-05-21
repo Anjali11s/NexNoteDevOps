@@ -16,7 +16,7 @@ const getBaseUrl = () => {
   // return '/api';
   // In production (Vercel)
   // return 'https://notesmobilebackend.onrender.com/api';
-  return 'http://16.16.169.56:5001/api';
+  return 'http://16.16.169.56:31448/api';
 };
 
 const BASE_URL = getBaseUrl();

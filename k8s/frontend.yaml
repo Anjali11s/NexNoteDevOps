@@ -17,7 +17,7 @@ spec:
       - name: dockerhub-secret
       containers:
       - name: frontend
-        image: singhanjali1/nexnote-frontend:f18325c
+        image: singhanjali1/nexnote-frontend:fdcf658
         ports:
         - containerPort: 80
         resources:

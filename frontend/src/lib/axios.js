@@ -13,8 +13,6 @@ const getBaseUrl = () => {
 
 const BASE_URL = getBaseUrl();
 
-const BASE_URL = getBaseUrl();
-
 console.log('API Base URL:', BASE_URL); // for debug
 
 const api = axios.create({

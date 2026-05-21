@@ -33,12 +33,34 @@ const allowedOrigins = [
   "http://localhost:5173",   // dev
   "http://localhost:4173",   // preview
   "https://notes-mobile-frontend.vercel.app" // production frontend
+
 ];
 
+// Any IP:port will be allowed
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list OR matches IP:port pattern
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } 
+    // Allow any EC2 IP (format: http://XX.XX.XX.XX:PORT)
+    else if (origin.match(/^http:\/\/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:\d+$/)) {
+      callback(null, true);
+    } 
+    else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
+
+// app.use(cors({
+//   origin: allowedOrigins,
+//   credentials: true,
+// }));
 
 app.use(express.json());
 app.use(rateLimiter);
